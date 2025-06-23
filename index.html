@@ -11,6 +11,8 @@
     <script src="https://apis.google.com/js/api.js" defer></script>
     <!-- Google Identity Services pour l'authentification -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Reown AppKit for Web3 wallet connections -->
+    <script src="https://cdn.jsdelivr.net/npm/@reown/appkit@1.7.7/dist/appkit.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -1750,6 +1752,73 @@
         const GOOGLE_CONFIG = {
             CLIENT_ID: '1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com', // Demo client ID
             SCOPES: 'profile email https://www.googleapis.com/auth/drive.file'
+        };
+        
+        // Reown AppKit Configuration (for advanced wallet connectivity)
+        // Get your project ID from https://cloud.reown.com
+        const APPKIT_CONFIG = {
+            projectId: 'fb1...f18', // Replace with your actual Reown Cloud project ID
+            metadata: {
+                name: 'FixieRun Dashboard',
+                description: 'Advanced Fitness Tracking with Blockchain Integration',
+                url: 'https://app.fixie.run',
+                icons: ['https://app.fixie.run/icon-192x192.png']
+            },
+            themeMode: 'dark',
+            themeVariables: {
+                '--w3m-accent': '#5D5CDE',
+                '--w3m-color-mix': '#00ffff',
+                '--w3m-color-mix-strength': 20
+            },
+            // Supported networks
+            networks: [
+                // Mainnets
+                {
+                    chainId: 1,
+                    name: 'Ethereum',
+                    currency: 'ETH',
+                    explorerUrl: 'https://etherscan.io',
+                    rpcUrl: 'https://cloudflare-eth.com'
+                },
+                {
+                    chainId: 137,
+                    name: 'Polygon',
+                    currency: 'MATIC',
+                    explorerUrl: 'https://polygonscan.com',
+                    rpcUrl: 'https://polygon-rpc.com'
+                },
+                {
+                    chainId: 42161,
+                    name: 'Arbitrum One',
+                    currency: 'ETH',
+                    explorerUrl: 'https://arbiscan.io',
+                    rpcUrl: 'https://arb1.arbitrum.io/rpc'
+                },
+                // Testnets
+                {
+                    chainId: 11155111,
+                    name: 'Sepolia',
+                    currency: 'ETH',
+                    explorerUrl: 'https://sepolia.etherscan.io',
+                    rpcUrl: 'https://sepolia.infura.io/v3/your-infura-key'
+                }
+                // Add your Tenderly Virtual TestNet here:
+                // {
+                //     chainId: 73571, // Your custom chain ID
+                //     name: 'Virtual Sepolia',
+                //     currency: 'vETH',
+                //     explorerUrl: 'https://dashboard.tenderly.co/explorer/vnet/your-testnet-id',
+                //     rpcUrl: 'https://virtual.sepolia.rpc.tenderly.co/your-rpc-key'
+                // }
+            ],
+            features: {
+                analytics: true,
+                email: true,
+                socials: ['google', 'github', 'apple', 'facebook'],
+                emailShowWallets: true,
+                onramp: true,
+                swaps: true
+            }
         };
         
         let googleAuth = null;

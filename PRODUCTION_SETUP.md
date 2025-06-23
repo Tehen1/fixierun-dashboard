@@ -46,13 +46,13 @@
    
    Authorized JavaScript Origins:
    - http://localhost:9000 (for development)
-   - https://your-domain.com (for production)
+   - https://app.fixie.run (for production)
    - https://your-app.netlify.app (if using Netlify)
    - https://your-app.vercel.app (if using Vercel)
    
    Authorized Redirect URIs:
    - http://localhost:9000 (for development)
-   - https://your-domain.com (for production)
+   - https://app.fixie.run (for production)
    ```
 
 4. **Download Credentials**

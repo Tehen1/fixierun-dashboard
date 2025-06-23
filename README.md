@@ -123,7 +123,7 @@ docker run -d -p 80:80 fixierun-dashboard
 ### Step 3: Update Google Cloud Console
 
 Add your production domain to authorized origins:
-- `https://your-domain.com`
+- `https://app.fixie.run`
 - `https://your-app.netlify.app` 
 - `https://your-app.vercel.app`
 

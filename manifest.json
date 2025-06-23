@@ -2,7 +2,7 @@
   "name": "FixieRun Dashboard",
   "short_name": "FixieRun",
   "description": "Advanced fitness tracking dashboard with blockchain integration and Google Drive sync",
-  "start_url": "/",
+  "start_url": "https://app.fixie.run/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0e1117",
