@@ -1,0 +1,2097 @@
+<!DOCTYPE html><html lang="fr" class="dark"><head><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FixieRun - Advanced Tracking Dashboard with DeFi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script src="https://accounts.google.com/gsi/client" async="" defer=""></script>
+    <!-- Google APIs avec clé publique pour demo -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCtf8atmtHqy3FUOb-aktfNuMPStJSZOfY&libraries=geometry" defer></script>
+    <script src="https://apis.google.com/js/api.js" defer></script>
+    <!-- Google Identity Services pour l'authentification -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        neon: {
+                            cyan: '#00ffff',
+                            pink: '#ff00ff',
+                            purple: '#9d00ff',
+                            green: '#00ff9d',
+                            blue: '#4169E1'
+                        },
+                        dark: {
+                            bg: '#0e1117',
+                            card: '#1a1c25',
+                            surface: '#2a2a36'
+                        }
+                    },
+                    animation: {
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'float': 'float 3s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            background-color: #0e1117;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(93, 92, 222, 0.08) 0%, transparent 25%),
+                radial-gradient(circle at 90% 80%, rgba(0, 255, 255, 0.08) 0%, transparent 25%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+        
+        .heading-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .holographic-bg {
+            background: linear-gradient(135deg, rgba(93, 92, 222, 0.2), rgba(0, 255, 255, 0.1));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glass-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        
+        .stat-card {
+            background: rgba(35, 35, 35, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(93, 92, 222, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            border-color: rgba(0, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .screen {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .screen.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 200px;
+            width: 100%;
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+        
+        .period-filter.active,
+        .analytics-period.active {
+            background: #5D5CDE !important;
+            color: white !important;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, rgba(93, 92, 222, 0.1), rgba(0, 255, 255, 0.05));
+            border: 1px solid rgba(93, 92, 222, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            border-color: rgba(0, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .gas-indicator {
+            animation: pulse 2s infinite;
+        }
+
+        .token-price-up {
+            color: #00ff9d;
+        }
+
+        .token-price-down {
+            color: #ff5757;
+        }
+
+        .neon-glow {
+            box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff, 0 0 60px #00ffff;
+        }
+
+        .neon-text {
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .connection-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .connected { background-color: #00ff9d; }
+        .disconnected { background-color: #ff4444; }
+        .connecting { background-color: #ffaa00; animation: pulse 1s infinite; }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #5D5CDE, #00ffff);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(93, 92, 222, 0.4);
+        }
+
+        .error-message {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            color: #ff4444;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .success-message {
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            color: #00ff9d;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            .grid {
+                gap: 1rem;
+            }
+            
+            .text-3xl {
+                font-size: 1.5rem;
+            }
+            
+            .text-2xl {
+                font-size: 1.25rem;
+            }
+        }
+
+        /* Animation keyframes */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 20px #00ffff; }
+            to { box-shadow: 0 0 30px #00ffff, 0 0 40px #00ffff; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-white">
+    <!-- App Header -->
+    <header class="fixed w-full top-0 z-10 holographic-bg">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold heading-font bg-clip-text text-transparent bg-gradient-to-r from-primary to-neon-cyan">
+                        FixieRun
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <!-- Gas Price Indicator -->
+                    <div class="hidden sm:flex items-center p-1.5 px-2.5 rounded-full bg-dark-card bg-opacity-70">
+                        <span class="text-neon-green text-xs">⛽</span>
+                        <span class="text-white mr-1.5 text-sm font-medium ml-1" id="header-gas-price">--</span>
+                        <span class="text-xs opacity-70">gwei</span>
+                    </div>
+                    <div class="hidden sm:flex items-center p-1.5 px-2.5 rounded-full bg-dark-card bg-opacity-70">
+                        <span class="text-neon-cyan mr-1.5 text-sm font-medium" id="token-balance">125.75</span>
+                        <svg class="h-4 w-4 text-neon-cyan" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <!-- Google Sign-In Button -->
+                    <button onclick="handleGoogleSignIn()" class="h-8 w-8 bg-gray-200 dark:bg-dark-card rounded-full flex items-center justify-center text-xs font-medium mr-2" id="google-signin-btn">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                    </button>
+                    <button onclick="connectWallet()" class="h-8 w-8 bg-gray-200 dark:bg-dark-card rounded-full flex items-center justify-center text-xs font-medium" id="wallet-btn">
+                        Connect
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Welcome Screen -->
+    <main id="welcome" class="screen container mx-auto px-4 pt-16 pb-24">
+        <section class="text-center pt-6 pb-12">
+            <div class="text-center mb-4">
+                <span class="text-xs font-medium py-1 px-3 rounded-full bg-primary bg-opacity-20 text-primary">Getting Started</span>
+            </div>
+            <h1 class="text-3xl font-bold heading-font mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-neon-cyan">Comment jouer</h1>
+            <p class="text-lg opacity-80 max-w-lg mx-auto">Suivez ces étapes simples pour commencer votre aventure</p>
+        </section>
+        
+        <!-- Steps -->
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-8 px-4 max-w-5xl mx-auto mb-16">
+            <!-- Step 1 -->
+            <div class="text-center">
+                <div class="w-24 h-24 mx-auto bg-dark-card rounded-full mb-4 flex items-center justify-center border border-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-neon-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold heading-font mb-2 text-neon-blue">Télécharger &amp; Connecter</h3>
+                <p class="text-sm opacity-80">Obtenez l'app et connectez votre wallet</p>
+            </div>
+            
+            <!-- Step 2 -->
+            <div class="text-center">
+                <div class="w-24 h-24 mx-auto bg-dark-card rounded-full mb-4 flex items-center justify-center border border-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold heading-font mb-2 text-neon-cyan">Commencer à Pédaler</h3>
+                <p class="text-sm opacity-80">Commencez votre parcours fitness</p>
+            </div>
+            
+            <!-- Step 3 -->
+            <div class="text-center">
+                <div class="w-24 h-24 mx-auto bg-dark-card rounded-full mb-4 flex items-center justify-center border border-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-neon-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold heading-font mb-2 text-neon-purple">Gagner des Récompenses</h3>
+                <p class="text-sm opacity-80">Obtenez des tokens pour vos performances</p>
+            </div>
+            
+            <!-- Step 4 -->
+            <div class="text-center">
+                <div class="w-24 h-24 mx-auto bg-dark-card rounded-full mb-4 flex items-center justify-center border border-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-neon-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                        </svg>
+                </div>
+                <h3 class="text-xl font-semibold heading-font mb-2 text-neon-pink">Monter de Niveau</h3>
+                <p class="text-sm opacity-80">Améliorez vos vélos NFT et votre rang</p>
+            </div>
+        </section>
+        
+        <div class="text-center mb-20">
+            <button onclick="switchScreen('home')" class="px-8 py-3 text-lg font-bold bg-gradient-to-r from-primary to-neon-cyan rounded-full text-white heading-font tracking-wider hover:shadow-lg transform transition hover:-translate-y-0.5 animate-pulse-slow">
+                Commencer
+            </button>
+        </div>
+    </main>
+
+    <!-- Enhanced Home Dashboard -->
+    <main id="home" class="screen active container mx-auto px-4 pt-16 pb-24">
+        <!-- Welcome Banner -->
+        <section class="mt-4 mb-6">
+            <div class="p-4 rounded-xl holographic-bg">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-lg font-semibold">Salut, Alex! 👋</h2>
+                        <p class="text-sm opacity-80">Niveau 12 · Série de 7 jours</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="flex items-center p-1.5 px-2.5 rounded-full bg-dark-card bg-opacity-70 sm:hidden">
+                            <span class="text-neon-cyan mr-1.5 text-sm font-medium" id="mobile-token-balance">125.75</span>
+                            <svg class="h-4 w-4 text-neon-cyan" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <button onclick="switchScreen('defi')" class="p-2 rounded-full bg-primary bg-opacity-20 text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </button>
+                        <button onclick="switchScreen('analytics')" class="p-2 rounded-full bg-primary bg-opacity-20 text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gas Price & DeFi Overview -->
+        <section class="mb-6">
+            <h3 class="text-sm font-medium uppercase opacity-70 heading-font mb-3">Aperçu Blockchain</h3>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Gas Price Card -->
+                <div class="stat-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Prix Gas</span>
+                        <span class="gas-indicator text-neon-green">⛽</span>
+                    </div>
+                    <div class="text-xl font-bold text-neon-green" id="gas-price-display">-- gwei</div>
+                    <div class="text-xs opacity-60 mt-1" id="gas-price-status">Chargement...</div>
+                </div>
+
+                <!-- ETH Price Card -->
+                <div class="stat-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Prix ETH</span>
+                        <span class="text-neon-blue">Ξ</span>
+                    </div>
+                    <div class="text-xl font-bold text-neon-blue" id="eth-price-display">$--</div>
+                    <div class="text-xs mt-1" id="eth-price-change">--</div>
+                </div>
+
+                <!-- Portfolio Value -->
+                <div class="stat-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Portfolio</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-neon-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div class="text-xl font-bold text-neon-purple" id="portfolio-value">$1,247</div>
+                    <div class="text-xs text-green-500 mt-1">+5.2% (24h)</div>
+                </div>
+
+                <!-- Network Status -->
+                <div class="stat-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Réseau</span>
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="text-xl font-bold text-white">En ligne</div>
+                    <div class="text-xs opacity-60 mt-1">Ethereum Mainnet</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Performance Overview -->
+        <section class="mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-medium uppercase opacity-70 heading-font">Aperçu des Performances</h3>
+                <div class="flex space-x-1">
+                    <button class="period-filter active text-xs px-2 py-1 rounded bg-primary text-white" data-period="week">Semaine</button>
+                    <button class="period-filter text-xs px-2 py-1 rounded bg-gray-200 dark:bg-dark-surface" data-period="month">Mois</button>
+                    <button class="period-filter text-xs px-2 py-1 rounded bg-gray-200 dark:bg-dark-surface" data-period="year">Année</button>
+                </div>
+            </div>
+            
+            <!-- Enhanced Stats Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <!-- Distance Card with Progress -->
+                <div class="stat-card rounded-lg p-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Distance</span>
+                        <div class="flex items-center text-green-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                            </svg>
+                            <span class="text-xs">+12%</span>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-2xl font-bold text-neon-cyan" id="weekly-distance">32.5</span>
+                        <span class="text-xs ml-1">km</span>
+                    </div>
+                    <div class="mt-2 w-full bg-gray-200 dark:bg-dark-surface rounded-full h-1">
+                        <div class="h-1 rounded-full bg-neon-cyan" style="width: 65%"></div>
+                    </div>
+                    <span class="text-xs opacity-60 mt-1">Objectif: 50km</span>
+                </div>
+                
+                <!-- Calories Card -->
+                <div class="stat-card rounded-lg p-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Calories</span>
+                        <div class="flex items-center text-green-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                            </svg>
+                            <span class="text-xs">+8%</span>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-2xl font-bold text-neon-pink" id="calories-burned">1250</span>
+                        <span class="text-xs ml-1">cal</span>
+                    </div>
+                    <div class="mt-2 w-full bg-gray-200 dark:bg-dark-surface rounded-full h-1">
+                        <div class="h-1 rounded-full bg-neon-pink" style="width: 83%"></div>
+                    </div>
+                    <span class="text-xs opacity-60 mt-1">Objectif: 1500cal</span>
+                </div>
+                
+                <!-- Speed Card -->
+                <div class="stat-card rounded-lg p-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Vitesse Moy.</span>
+                        <div class="flex items-center text-red-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                            </svg>
+                            <span class="text-xs">-3%</span>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-2xl font-bold text-neon-purple" id="avg-speed">18.4</span>
+                        <span class="text-xs ml-1">km/h</span>
+                    </div>
+                    <div class="mt-2 w-full bg-gray-200 dark:bg-dark-surface rounded-full h-1">
+                        <div class="h-1 rounded-full bg-neon-purple" style="width: 74%"></div>
+                    </div>
+                    <span class="text-xs opacity-60 mt-1">Cible: 25km/h</span>
+                </div>
+                
+                <!-- Tokens Card -->
+                <div class="stat-card rounded-lg p-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">$FIXIE Gagnés</span>
+                        <div class="flex items-center text-green-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                            </svg>
+                            <span class="text-xs">+24%</span>
+                        </div>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-2xl font-bold text-neon-green" id="weekly-tokens">16.25</span>
+                        <span class="text-xs ml-1">cette semaine</span>
+                    </div>
+                    <div class="mt-2 w-full bg-gray-200 dark:bg-dark-surface rounded-full h-1">
+                        <div class="h-1 rounded-full bg-neon-green" style="width: 65%"></div>
+                    </div>
+                    <span class="text-xs opacity-60 mt-1">Objectif: 25</span>
+                </div>
+            </div>
+
+            <!-- Featured NFT Bike Showcase -->
+            <div class="relative rounded-lg overflow-hidden mb-4">
+                <div class="absolute inset-0 bg-gradient-to-r from-purple-900/90 via-blue-900/80 to-purple-900/90"></div>
+                <div class="w-full h-32 bg-gradient-to-r from-purple-600 to-blue-600 opacity-60"></div>
+                <div class="absolute inset-0 flex items-center justify-between p-4">
+                    <div>
+                        <h4 class="text-lg font-bold text-white">Neon Phantom</h4>
+                        <p class="text-sm text-gray-200">Votre vélo NFT premium</p>
+                        <div class="flex items-center mt-1">
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-200">Rare</span>
+                            <span class="text-xs ml-2 text-neon-cyan">+2% Boost Token</span>
+                        </div>
+                    </div>
+                    <button onclick="switchScreen('profile')" class="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg text-white text-sm font-medium border border-white/30">
+                        Voir Collection
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Chart Preview -->
+            <div class="bg-white dark:bg-dark-card rounded-lg p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="font-medium text-white">Tendance d'Activité</h4>
+                    <button onclick="switchScreen('analytics')" class="text-xs text-primary">Voir Détails</button>
+                </div>
+                <div class="h-24 flex items-end space-x-1">
+                    <div class="flex-1 bg-neon-cyan bg-opacity-60 rounded-t" style="height: 45%"></div>
+                    <div class="flex-1 bg-neon-cyan bg-opacity-60 rounded-t" style="height: 60%"></div>
+                    <div class="flex-1 bg-neon-cyan bg-opacity-60 rounded-t" style="height: 35%"></div>
+                    <div class="flex-1 bg-neon-cyan bg-opacity-60 rounded-t" style="height: 80%"></div>
+                    <div class="flex-1 bg-neon-cyan bg-opacity-60 rounded-t" style="height: 70%"></div>
+                    <div class="flex-1 bg-neon-cyan bg-opacity-60 rounded-t" style="height: 90%"></div>
+                    <div class="flex-1 bg-neon-cyan bg-opacity-60 rounded-t" style="height: 65%"></div>
+                </div>
+                <div class="flex justify-between text-xs opacity-60 mt-2">
+                    <span>Lun</span>
+                    <span>Mar</span>
+                    <span>Mer</span>
+                    <span>Jeu</span>
+                    <span>Ven</span>
+                    <span>Sam</span>
+                    <span>Dim</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Start Workout Button -->
+        <section class="my-6">
+            <button id="start-activity" onclick="app.currentActivity ? stopActivity() : startActivity()" class="w-full py-4 rounded-lg font-bold text-white heading-font tracking-wider bg-gradient-to-r from-primary to-neon-cyan hover:shadow-lg transform transition hover:-translate-y-0.5 animate-pulse-slow">
+                COMMENCER L'ENTRAÎNEMENT
+            </button>
+            
+            <!-- Live tracking stats -->
+            <div id="live-tracking" class="mt-4 p-3 rounded-lg holographic-bg hidden">
+                <h4 class="text-center text-sm font-medium heading-font mb-2">SUIVI EN DIRECT</h4>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-dark-card bg-opacity-50 rounded p-2">
+                        <p class="text-xs opacity-70">Distance</p>
+                        <p class="text-xl font-bold text-neon-cyan"><span id="live-distance">0.00</span> km</p>
+                    </div>
+                    <div class="bg-dark-card bg-opacity-50 rounded p-2">
+                        <p class="text-xs opacity-70">Temps</p>
+                        <p class="text-xl font-bold text-white"><span id="live-time">00:00</span></p>
+                    </div>
+                    <div class="bg-dark-card bg-opacity-50 rounded p-2">
+                        <p class="text-xs opacity-70">Calories</p>
+                        <p class="text-xl font-bold text-neon-pink"><span id="live-calories">0</span></p>
+                    </div>
+                </div>
+                <div id="gps-status" class="mt-2"></div>
+                <div class="mt-3 text-center">
+                    <button onclick="stopActivity()" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-red-600 text-white">
+                        TERMINER L'ENTRAÎNEMENT
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Activities -->
+        <section class="mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-medium uppercase opacity-70 heading-font">Activités Récentes</h3>
+                <a href="#" class="text-xs text-primary">Voir Tout</a>
+            </div>
+            <div id="activity-history">
+                <!-- Activity cards will be populated by JavaScript -->
+            </div>
+        </section>
+    </main>
+
+    <!-- DeFi Dashboard -->
+    <main id="defi" class="screen container mx-auto px-4 pt-16 pb-24">
+        <section class="my-4">
+            <h2 class="text-xl font-bold heading-font">Dashboard DeFi</h2>
+            <p class="text-sm opacity-70">Suivez les prix crypto et les frais gas en temps réel</p>
+        </section>
+
+        <!-- Gas Price Section -->
+        <section class="mb-6">
+            <h3 class="text-sm font-medium uppercase opacity-70 mb-3 heading-font">Tracker Gas Ethereum</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <div class="stat-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Lent</span>
+                        <span class="text-green-500">🐢</span>
+                    </div>
+                    <div class="text-2xl font-bold text-green-500" id="gas-slow">-- gwei</div>
+                    <div class="text-xs opacity-60 mt-1">~5 minutes</div>
+                </div>
+
+                <div class="stat-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Standard</span>
+                        <span class="text-yellow-500">🚗</span>
+                    </div>
+                    <div class="text-2xl font-bold text-yellow-500" id="gas-standard">-- gwei</div>
+                    <div class="text-xs opacity-60 mt-1">~2 minutes</div>
+                </div>
+
+                <div class="stat-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Rapide</span>
+                        <span class="text-red-500">🚀</span>
+                    </div>
+                    <div class="text-2xl font-bold text-red-500" id="gas-fast">-- gwei</div>
+                    <div class="text-xs opacity-60 mt-1">~30 secondes</div>
+                </div>
+            </div>
+
+            <!-- Gas Price Chart -->
+            <div class="bg-white dark:bg-dark-card rounded-lg p-4 mb-6">
+                <h4 class="font-medium mb-4 text-white">Tendance Prix Gas (24h)</h4>
+                <div class="chart-container">
+                    <canvas id="gasChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Token Prices Section -->
+        <section class="mb-6">
+            <h3 class="text-sm font-medium uppercase opacity-70 mb-3 heading-font">Prix des Tokens</h3>
+            <div id="token-prices-container">
+                <!-- Token price cards will be inserted here dynamically -->
+            </div>
+        </section>
+
+        <!-- DeFi Tools -->
+        <section class="mb-6">
+            <h3 class="text-sm font-medium uppercase opacity-70 mb-3 heading-font">Outils DeFi</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="metric-card rounded-lg p-4">
+                    <h4 class="font-medium mb-2">Calculateur Gas</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-sm opacity-70">Type de Transaction</label>
+                            <select class="w-full mt-1 p-2 bg-dark-surface rounded text-base text-white">
+                                <option>Transfert ETH</option>
+                                <option>Transfert ERC-20</option>
+                                <option>Swap Uniswap</option>
+                                <option>Mint NFT</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-sm opacity-70">Prix Gas (gwei)</label>
+                            <input type="number" id="gas-calc-price" class="w-full mt-1 p-2 bg-dark-surface rounded text-base text-white" placeholder="20">
+                        </div>
+                        <div class="text-center">
+                            <button onclick="calculateGasCost()" class="px-4 py-2 bg-primary text-white rounded-lg text-sm">Calculer Coût</button>
+                        </div>
+                        <div id="gas-calc-result" class="text-center text-sm opacity-70"></div>
+                    </div>
+                </div>
+
+                <div class="metric-card rounded-lg p-4">
+                    <h4 class="font-medium mb-2">Tracker Portfolio</h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span>Holdings ETH</span>
+                            <span class="text-neon-cyan">0.5 ETH</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Valeur Totale</span>
+                            <span class="text-neon-green" id="portfolio-total">$--</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Change 24h</span>
+                            <span id="portfolio-change" class="text-green-500">+$--</span>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-dark-surface">
+                            <button class="w-full py-2 bg-primary text-white rounded-lg text-sm">Ajouter Token</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Analytics Dashboard -->
+    <main id="analytics" class="screen container mx-auto px-4 pt-16 pb-24">
+        <section class="my-4">
+            <h2 class="text-xl font-bold heading-font">Dashboard Analytics</h2>
+            <p class="text-sm opacity-70">Insights détaillés sur vos performances</p>
+        </section>
+
+        <!-- Time Period Selector -->
+        <section class="mb-6">
+            <div class="flex space-x-2 p-1 bg-dark-card rounded-lg">
+                <button class="analytics-period active flex-1 py-2 px-4 rounded-md text-sm font-medium bg-primary text-white" data-period="7d">7 Jours</button>
+                <button class="analytics-period flex-1 py-2 px-4 rounded-md text-sm font-medium text-white" data-period="1m">1 Mois</button>
+                <button class="analytics-period flex-1 py-2 px-4 rounded-md text-sm font-medium text-white" data-period="3m">3 Mois</button>
+                <button class="analytics-period flex-1 py-2 px-4 rounded-md text-sm font-medium text-white" data-period="1y">1 Année</button>
+            </div>
+        </section>
+
+        <!-- Key Metrics -->
+        <section class="mb-6">
+            <h3 class="text-sm font-medium uppercase opacity-70 mb-3 heading-font">Métriques Clés</h3>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Distance -->
+                <div class="metric-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Distance Totale</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-neon-cyan">156.7 km</div>
+                    <div class="text-xs opacity-60 mt-1">+18% vs période précédente</div>
+                </div>
+
+                <!-- Speed -->
+                <div class="metric-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Vitesse Moy.</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-neon-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-neon-purple">19.2 km/h</div>
+                    <div class="text-xs opacity-60 mt-1">-2% vs période précédente</div>
+                </div>
+
+                <!-- Calories -->
+                <div class="metric-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Calories Totales</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-neon-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 716.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-neon-pink">6,240</div>
+                    <div class="text-xs opacity-60 mt-1">+25% vs période précédente</div>
+                </div>
+
+                <!-- Tokens -->
+                <div class="metric-card rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs opacity-70">Tokens Gagnés</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-neon-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="text-2xl font-bold text-neon-green">78.4</div>
+                    <div class="text-xs opacity-60 mt-1">+31% vs période précédente</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="mb-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Distance Chart -->
+                <div class="bg-white dark:bg-dark-card rounded-lg p-4">
+                    <h4 class="font-medium mb-4 text-white">Distance dans le Temps</h4>
+                    <div class="chart-container">
+                        <canvas id="distanceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Speed Chart -->
+                <div class="bg-white dark:bg-dark-card rounded-lg p-4">
+                    <h4 class="font-medium mb-4 text-white">Tendance Vitesse Moyenne</h4>
+                    <div class="chart-container">
+                        <canvas id="speedChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Profile Screen -->
+    <main id="profile" class="screen container mx-auto px-4 pt-16 pb-24">
+        <section class="my-4">
+            <h2 class="text-xl font-bold heading-font">Profil</h2>
+            <p class="text-sm opacity-70">Gérez votre compte et vos NFTs</p>
+        </section>
+
+        <!-- Profile Header -->
+        <section class="mb-6">
+            <div class="p-4 rounded-xl holographic-bg">
+                <div class="flex items-center">
+                    <div class="h-16 w-16 rounded-full overflow-hidden mr-4 bg-primary flex items-center justify-center">
+                        <span class="text-2xl font-bold">A</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold" id="profile-name">Alex</h3>
+                        <p class="text-sm opacity-70">Niveau <span id="profile-level">12</span></p>
+                        <div class="mt-2 w-full bg-gray-200 dark:bg-dark-surface rounded-full h-2">
+                            <div id="profile-xp-bar" class="h-2 rounded-full bg-primary" style="width: 82%"></div>
+                        </div>
+                        <p class="text-xs opacity-60 mt-1" id="profile-xp-text">2450/3000 XP</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Stats -->
+        <section class="mb-6">
+            <h3 class="text-sm font-medium uppercase opacity-70 mb-3 heading-font">Statistiques</h3>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="stat-card rounded-lg p-3 text-center">
+                    <div class="text-xl font-bold text-neon-cyan" id="profile-weekly-distance">32.5</div>
+                    <div class="text-xs opacity-70">Distance Hebdo.</div>
+                </div>
+                <div class="stat-card rounded-lg p-3 text-center">
+                    <div class="text-xl font-bold text-neon-purple" id="profile-total-activities">23</div>
+                    <div class="text-xs opacity-70">Total Activités</div>
+                </div>
+                <div class="stat-card rounded-lg p-3 text-center">
+                    <div class="text-xl font-bold text-neon-pink" id="profile-streak">7</div>
+                    <div class="text-xs opacity-70">Série Jours</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NFT Collection -->
+        <section class="mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-medium uppercase opacity-70 heading-font">Mes Vélos NFT</h3>
+                <a href="#" class="text-xs text-primary">Voir Tout</a>
+            </div>
+            <div id="nfts-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- NFT cards will be populated by JavaScript -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 w-full bg-dark-card border-t border-dark-surface z-20">
+        <div class="grid grid-cols-5 h-16">
+            <a href="#" id="nav-welcome" class="nav-item flex flex-col items-center justify-center text-gray-500 dark:text-gray-400" onclick="switchScreen('welcome'); return false;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-xs mt-1">Intro</span>
+            </a>
+            <a href="#" id="nav-home" class="nav-item flex flex-col items-center justify-center text-primary" onclick="switchScreen('home'); return false;">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span class="text-xs mt-1">Accueil</span>
+            </a>
+            <a href="#" id="nav-defi" class="nav-item flex flex-col items-center justify-center text-gray-500 dark:text-gray-400" onclick="switchScreen('defi'); return false;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-xs mt-1">DeFi</span>
+            </a>
+            <a href="#" id="nav-analytics" class="nav-item flex flex-col items-center justify-center text-gray-500 dark:text-gray-400" onclick="switchScreen('analytics'); return false;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span class="text-xs mt-1">Analytics</span>
+            </a>
+            <a href="#" id="nav-profile" class="nav-item flex flex-col items-center justify-center text-gray-500 dark:text-gray-400" onclick="switchScreen('profile'); return false;">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                <span class="text-xs mt-1">Profil</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Toast Notifications -->
+    <div id="completion-toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg z-50 hidden">
+        <div class="text-center">
+            <p class="font-bold">Entraînement Terminé! 🎉</p>
+            <p class="text-sm">Vous avez gagné <span id="earned-tokens">0</span> tokens $FIXIE</p>
+        </div>
+    </div>
+
+    <div id="level-up-toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-primary text-white px-6 py-3 rounded-lg z-50 hidden">
+        <div class="text-center">
+            <p class="font-bold">Montée de Niveau! 🚀</p>
+            <p class="text-sm">Vous avez atteint le niveau <span id="new-level">0</span></p>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced App State
+        const app = {
+            currentScreen: 'home',
+            currentActivity: null,
+            startTime: null,
+            distance: 0,
+            calories: 0,
+            gasPrice: { fast: 0, standard: 0, slow: 0 },
+            defiTokens: [
+                { symbol: 'ETH', name: 'Ethereum', price: 0, change24h: 0 },
+                { symbol: 'BTC', name: 'Bitcoin', price: 0, change24h: 0 },
+                { symbol: 'USDC', name: 'USD Coin', price: 0, change24h: 0 },
+                { symbol: 'UNI', name: 'Uniswap', price: 0, change24h: 0 }
+            ],
+            user: {
+                name: "Alex",
+                level: 12,
+                experience: 2450,
+                experienceToNextLevel: 3000,
+                profileImage: null,
+                streakDays: 7,
+                weeklyDistance: 32.5,
+                weeklyCalories: 1250,
+                tokenBalance: 125.75,
+                walletAddress: null,
+                nfts: [
+                    { id: 1, name: "Cyber Fixie", rarity: "Epic", level: 3, boost: "+5% XP" },
+                    { id: 2, name: "Neon Phantom", rarity: "Rare", level: 2, boost: "+2% Tokens" },
+                    { id: 3, name: "Purple Storm", rarity: "Epic", level: 1, boost: "+3% Speed" }
+                ],
+                activities: [
+                    { date: "Aujourd'hui, 9h30", type: "Sortie Matinale", distance: 5.2, duration: "25 min", calories: 210, tokens: 2.6 },
+                    { date: "Hier, 18h15", type: "Course du Soir", distance: 3.7, duration: "30 min", calories: 320, tokens: 1.85 },
+                    { date: "21 Mai, 7h45", type: "Entraînement Vitesse", distance: 8.1, duration: "45 min", calories: 450, tokens: 4.05 }
+                ]
+            },
+            charts: {},
+            gpsEnabled: false,
+            activityPath: []
+        };
+
+        // Chart variables
+        let distanceChart = null;
+        let speedChart = null;
+        let gasChart = null;
+
+        // GPS and location tracking with improved error handling
+        let watchId = null;
+
+        function startGPSTracking() {
+            const statusEl = document.getElementById('gps-status');
+            
+            if (!navigator.geolocation) {
+                if (statusEl) {
+                    statusEl.innerHTML = '<div class="error-message">❌ Géolocalisation non supportée par ce navigateur</div>';
+                }
+                showGeolocationHelp();
+                return false;
+            }
+
+            // First check permissions using the Permissions API if available
+            if ('permissions' in navigator) {
+                navigator.permissions.query({name: 'geolocation'}).then((result) => {
+                    if (result.state === 'denied') {
+                        if (statusEl) {
+                            statusEl.innerHTML = '<div class="error-message">❌ Permission géolocalisation refusée définitivement</div>';
+                        }
+                        showGeolocationHelp();
+                        return;
+                    }
+                });
+            }
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 15000, // Increased timeout
+                maximumAge: 30000 // Reduced max age for fresher location
+            };
+
+            if (statusEl) {
+                statusEl.innerHTML = '<div class="connecting">📍 Demande d\'accès GPS en cours...</div>';
+            }
+
+            // Use getCurrentPosition first for faster initial response
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+                    
+                    app.activityPath.push({ lat, lng, timestamp: Date.now() });
+                    app.gpsEnabled = true;
+                    
+                    if (statusEl) {
+                        statusEl.innerHTML = `<div class="success-message">✅ GPS connecté - Précision: ${Math.round(accuracy)}m</div>`;
+                    }
+                    
+                    console.log(`📍 GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (±${accuracy}m)`);
+                    
+                    // Now start continuous watching
+                    watchId = navigator.geolocation.watchPosition(
+                        (position) => {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            const accuracy = position.coords.accuracy;
+                            
+                            app.activityPath.push({ lat, lng, timestamp: Date.now() });
+                            
+                            if (statusEl && app.activityPath.length % 5 === 0) { // Update every 5 GPS points
+                                statusEl.innerHTML = `<div class="success-message">✅ GPS actif - Précision: ${Math.round(accuracy)}m</div>`;
+                            }
+                        },
+                        (error) => {
+                            handleGPSError(error, statusEl);
+                        },
+                        options
+                    );
+                },
+                (error) => {
+                    handleGPSError(error, statusEl);
+                },
+                options
+            );
+
+            return true;
+        }
+        
+        function handleGPSError(error, statusEl) {
+            let errorMessage = '';
+            let helpNeeded = false;
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = "❌ Permission GPS refusée";
+                    helpNeeded = true;
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = "⚠️ Signal GPS indisponible - Mode simulation activé";
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = "⏱️ Délai GPS dépassé - Mode simulation activé";
+                    break;
+                default:
+                    errorMessage = "❌ Erreur GPS - Mode simulation activé";
+                    break;
+            }
+            
+            if (statusEl) {
+                statusEl.innerHTML = `<div class="error-message">${errorMessage}</div>`;
+            }
+            
+            if (helpNeeded) {
+                showGeolocationHelp();
+            }
+            
+            console.warn('GPS Error:', error.message);
+            
+            // Continue with simulation mode
+            app.gpsEnabled = false;
+        }
+        
+        function showGeolocationHelp() {
+            const helpDiv = document.createElement('div');
+            helpDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            helpDiv.innerHTML = `
+                <div class="bg-dark-card p-6 rounded-lg max-w-md mx-4">
+                    <h3 class="text-lg font-bold mb-4 text-center">🗺️ Activer la Géolocalisation</h3>
+                    <div class="space-y-3 text-sm">
+                        <p><strong>Sur Chrome/Safari:</strong></p>
+                        <ol class="list-decimal list-inside space-y-1 text-xs">
+                            <li>Cliquez sur l'icône 🔒 à gauche de l'URL</li>
+                            <li>Activez "Localisation"</li>
+                            <li>Rechargez la page</li>
+                        </ol>
+                        
+                        <p><strong>Sur Mobile:</strong></p>
+                        <ol class="list-decimal list-inside space-y-1 text-xs">
+                            <li>Allez dans Réglages > Safari/Chrome</li>
+                            <li>Activez "Localisation"</li>
+                            <li>Redémarrez l'app</li>
+                        </ol>
+                        
+                        <div class="bg-yellow-500 bg-opacity-20 p-3 rounded mt-4">
+                            <p class="text-yellow-300 text-xs">💡 Pas de GPS? Pas de problème! L'app fonctionne en mode simulation.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-3 mt-6">
+                        <button onclick="location.reload()" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm">Recharger</button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg text-sm">Continuer sans GPS</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(helpDiv);
+            
+            // Auto-remove after 15 seconds
+            setTimeout(() => {
+                if (helpDiv.parentNode) {
+                    helpDiv.remove();
+                }
+            }, 15000);
+        }
+
+        function stopGPSTracking() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                app.gpsEnabled = false;
+                
+                const statusEl = document.getElementById('gps-status');
+                if (statusEl) {
+                    statusEl.innerHTML = '';
+                }
+            }
+        }
+
+        function calculateRealDistance() {
+            if (app.activityPath.length < 2) return 0;
+
+            let totalDistance = 0;
+            for (let i = 1; i < app.activityPath.length; i++) {
+                const prev = app.activityPath[i - 1];
+                const curr = app.activityPath[i];
+                
+                // Haversine formula
+                const R = 6371; // Earth's radius in km
+                const dLat = (curr.lat - prev.lat) * Math.PI / 180;
+                const dLng = (curr.lng - prev.lng) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                         Math.cos(prev.lat * Math.PI / 180) * Math.cos(curr.lat * Math.PI / 180) *
+                         Math.sin(dLng/2) * Math.sin(dLng/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                const distance = R * c;
+                
+                totalDistance += distance;
+            }
+
+            return totalDistance;
+        }
+
+        // Blockchain API functions with fallback data
+        async function fetchGasPrices() {
+            try {
+                // Simulate realistic gas prices
+                const gasData = {
+                    slow: Math.floor(Math.random() * 20) + 15,
+                    standard: Math.floor(Math.random() * 25) + 25,
+                    fast: Math.floor(Math.random() * 30) + 35
+                };
+                
+                app.gasPrice = gasData;
+                
+                // Update UI
+                document.getElementById('gas-slow').textContent = `${gasData.slow} gwei`;
+                document.getElementById('gas-standard').textContent = `${gasData.standard} gwei`;
+                document.getElementById('gas-fast').textContent = `${gasData.fast} gwei`;
+                document.getElementById('gas-price-display').textContent = `${gasData.standard} gwei`;
+                document.getElementById('header-gas-price').textContent = gasData.standard;
+                document.getElementById('gas-price-status').textContent = getGasPriceStatus(gasData.standard);
+                
+            } catch (error) {
+                console.error('Error fetching gas prices:', error);
+                document.getElementById('gas-price-status').textContent = 'Erreur chargement';
+            }
+        }
+
+        async function fetchTokenPrices() {
+            try {
+                // Simulate realistic price data
+                const priceData = {
+                    ETH: { price: 2400 + Math.random() * 200 - 100, change24h: (Math.random() - 0.5) * 10 },
+                    BTC: { price: 42000 + Math.random() * 4000 - 2000, change24h: (Math.random() - 0.5) * 8 },
+                    USDC: { price: 1.0 + (Math.random() - 0.5) * 0.01, change24h: (Math.random() - 0.5) * 0.5 },
+                    UNI: { price: 6 + Math.random() * 2 - 1, change24h: (Math.random() - 0.5) * 15 }
+                };
+                
+                // Update app state
+                app.defiTokens.forEach(token => {
+                    if (priceData[token.symbol]) {
+                        token.price = priceData[token.symbol].price;
+                        token.change24h = priceData[token.symbol].change24h;
+                    }
+                });
+                
+                // Update ETH price in header
+                document.getElementById('eth-price-display').textContent = `$${priceData.ETH.price.toFixed(0)}`;
+                const ethChangeEl = document.getElementById('eth-price-change');
+                const ethChange = priceData.ETH.change24h;
+                ethChangeEl.textContent = `${ethChange >= 0 ? '+' : ''}${ethChange.toFixed(2)}%`;
+                ethChangeEl.className = `text-xs mt-1 ${ethChange >= 0 ? 'token-price-up' : 'token-price-down'}`;
+                
+                // Update portfolio value
+                const portfolioValue = 0.5 * priceData.ETH.price + 125.75 * 0.2;
+                document.getElementById('portfolio-value').textContent = `$${portfolioValue.toFixed(0)}`;
+                if (document.getElementById('portfolio-total')) {
+                    document.getElementById('portfolio-total').textContent = `$${portfolioValue.toFixed(0)}`;
+                }
+                
+                updateTokenPriceCards();
+                
+            } catch (error) {
+                console.error('Error fetching token prices:', error);
+                updateTokenPriceCards();
+            }
+        }
+
+        function updateTokenPriceCards() {
+            const container = document.getElementById('token-prices-container');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            app.defiTokens.forEach(token => {
+                const card = document.createElement('div');
+                card.className = 'stat-card rounded-lg p-4 mb-4';
+                
+                const changeClass = token.change24h >= 0 ? 'token-price-up' : 'token-price-down';
+                const changeIcon = token.change24h >= 0 ? '↗' : '↘';
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-lg">${token.symbol}</h3>
+                            <p class="text-sm opacity-70">${token.name}</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xl font-bold">$${token.price.toFixed(token.symbol === 'USDC' ? 4 : 0)}</div>
+                            <div class="text-sm ${changeClass}">
+                                ${changeIcon} ${Math.abs(token.change24h).toFixed(2)}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-dark-surface">
+                        <div class="flex justify-between text-sm">
+                            <span>Market Cap</span>
+                            <span>$${(token.price * Math.random() * 1000000).toFixed(0)}M</span>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function getGasPriceStatus(gasPrice) {
+            if (gasPrice < 20) return 'Bas - Bon moment pour transacter!';
+            if (gasPrice < 40) return 'Modéré - Activité réseau normale';
+            if (gasPrice < 60) return 'Élevé - Le réseau est occupé';
+            return 'Très Élevé - Considérez attendre';
+        }
+
+        function calculateGasCost() {
+            const gasPrice = document.getElementById('gas-calc-price').value || app.gasPrice.standard;
+            const gasLimits = {
+                'Transfert ETH': 21000,
+                'Transfert ERC-20': 65000,
+                'Swap Uniswap': 150000,
+                'Mint NFT': 85000
+            };
+            
+            const transactionType = document.querySelector('select').value;
+            const gasLimit = gasLimits[transactionType] || 21000;
+            const ethPrice = app.defiTokens.find(t => t.symbol === 'ETH')?.price || 2500;
+            
+            const gasCostEth = (gasPrice * gasLimit) / 1e9;
+            const gasCostUsd = gasCostEth * ethPrice;
+            
+            document.getElementById('gas-calc-result').innerHTML = `
+                Coût: ${gasCostEth.toFixed(6)} ETH (~$${gasCostUsd.toFixed(2)})
+            `;
+        }
+
+        // Screen switching
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            document.getElementById(screenId).classList.add('active');
+            
+            if (screenId !== 'welcome') {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('text-primary');
+                    item.classList.add('text-gray-500', 'dark:text-gray-400');
+                });
+                
+                const navItem = document.getElementById(`nav-${screenId}`);
+                if (navItem) {
+                    navItem.classList.remove('text-gray-500', 'dark:text-gray-400');
+                    navItem.classList.add('text-primary');
+                }
+            }
+            
+            app.currentScreen = screenId;
+            
+            if (screenId === 'analytics' && !app.charts.analyticsInitialized) {
+                setTimeout(initializeAnalyticsCharts, 100);
+                app.charts.analyticsInitialized = true;
+            }
+            
+            if (screenId === 'defi' && !app.charts.gasInitialized) {
+                setTimeout(initializeGasChart, 100);
+                app.charts.gasInitialized = true;
+            }
+        }
+
+        // Activity tracking
+        function startActivity() {
+            if (app.currentActivity) return;
+            
+            const activityBtn = document.getElementById('start-activity');
+            activityBtn.textContent = 'SUIVI EN COURS...';
+            activityBtn.classList.remove('from-primary', 'to-neon-cyan');
+            activityBtn.classList.add('from-red-500', 'to-red-700');
+            
+            // Try to start GPS tracking
+            startGPSTracking();
+            
+            app.startTime = new Date();
+            app.distance = 0;
+            app.calories = 0;
+            app.activityPath = [];
+            
+            app.currentActivity = setInterval(() => {
+                // Use real GPS data if available, otherwise simulate
+                if (app.gpsEnabled && app.activityPath.length > 1) {
+                    app.distance = calculateRealDistance();
+                } else {
+                    // Simulation mode
+                    const distanceIncrement = (Math.random() * 0.2 + 0.1) / 10;
+                    app.distance += distanceIncrement;
+                }
+                
+                app.calories = calculateRealCalories(app.distance);
+                
+                document.getElementById('live-distance').textContent = app.distance.toFixed(2);
+                document.getElementById('live-calories').textContent = Math.round(app.calories);
+                
+                const elapsed = Math.floor((new Date() - app.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('live-time').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                document.getElementById('live-tracking').classList.remove('hidden');
+            }, 1000);
+        }
+
+        function stopActivity() {
+            if (!app.currentActivity) return;
+            
+            clearInterval(app.currentActivity);
+            app.currentActivity = null;
+            
+            stopGPSTracking();
+            
+            const activityBtn = document.getElementById('start-activity');
+            activityBtn.textContent = 'COMMENCER L\'ENTRAÎNEMENT';
+            activityBtn.classList.remove('from-red-500', 'to-red-700');
+            activityBtn.classList.add('from-primary', 'to-neon-cyan');
+            
+            const tokensEarned = calculateTokenReward({
+                distance: app.distance,
+                duration: Math.floor((new Date() - app.startTime) / 1000),
+                timestamp: new Date().toISOString()
+            });
+            
+            app.user.tokenBalance += tokensEarned;
+            app.user.weeklyDistance += app.distance;
+            app.user.weeklyCalories += Math.round(app.calories);
+            
+            const now = new Date();
+            const formattedDate = `Aujourd'hui, ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            const timeElapsed = Math.floor((now - app.startTime) / 1000);
+            const minutes = Math.floor(timeElapsed / 60);
+            
+            const activityData = {
+                id: 'activity_' + Date.now(),
+                date: formattedDate,
+                type: app.distance > 5 ? "Longue Sortie" : "Sortie Rapide",
+                distance: parseFloat(app.distance.toFixed(2)),
+                duration: `${minutes} min`,
+                calories: Math.round(app.calories),
+                tokens: parseFloat(tokensEarned.toFixed(2)),
+                timestamp: now.toISOString()
+            };
+            
+            app.user.activities.unshift(activityData);
+            
+            updateHomeStats();
+            updateActivityHistory();
+            updateProfileStats();
+            
+            // XP and level up logic
+            const xpEarned = Math.round(app.distance * 10);
+            app.user.experience += xpEarned;
+            if (app.user.experience >= app.user.experienceToNextLevel) {
+                app.user.level++;
+                app.user.experience -= app.user.experienceToNextLevel;
+                app.user.experienceToNextLevel = Math.round(app.user.experienceToNextLevel * 1.2);
+                
+                const levelUpToast = document.getElementById('level-up-toast');
+                document.getElementById('new-level').textContent = app.user.level;
+                levelUpToast.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    levelUpToast.classList.add('hidden');
+                }, 5000);
+            }
+            
+            // Show completion toast
+            const toast = document.getElementById('completion-toast');
+            document.getElementById('earned-tokens').textContent = tokensEarned.toFixed(2);
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 5000);
+            
+            document.getElementById('live-tracking').classList.add('hidden');
+        }
+
+        function calculateRealCalories(distance) {
+            const userWeight = 70; // kg
+            const caloriesPerKm = 32; // cycling
+            return distance * caloriesPerKm;
+        }
+
+        function calculateTokenReward(activityData) {
+            let baseReward = activityData.distance * 0.5; // 0.5 token per km
+            
+            // Apply NFT boosts
+            app.user.nfts.forEach(nft => {
+                if (nft.boost.includes('Token')) {
+                    const boostPercent = parseFloat(nft.boost.match(/\d+/)[0]) / 100;
+                    baseReward *= (1 + boostPercent);
+                }
+            });
+            
+            // Apply level multiplier
+            const levelBonus = Math.floor(app.user.level / 10) * 0.1;
+            baseReward *= (1 + levelBonus);
+            
+            return parseFloat(baseReward.toFixed(2));
+        }
+
+        // Wallet connection
+        async function connectWallet() {
+            try {
+                if (window.ethereum) {
+                    const accounts = await window.ethereum.request({
+                        method: 'eth_requestAccounts'
+                    });
+                    
+                    app.user.walletAddress = accounts[0];
+                    const shortAddress = accounts[0].slice(0, 6) + '...' + accounts[0].slice(-4);
+                    
+                    const walletBtn = document.getElementById('wallet-btn');
+                    walletBtn.textContent = shortAddress;
+                    walletBtn.classList.add('bg-green-600');
+                    
+                    console.log('✅ Wallet connected:', accounts[0]);
+                    return accounts[0];
+                } else {
+                    alert('Veuillez installer MetaMask!');
+                }
+            } catch (error) {
+                console.log('❌ Wallet connection failed:', error);
+                alert('Échec de connexion au wallet');
+            }
+            
+            return null;
+        }
+
+        // UI Update Functions
+        function updateHomeStats() {
+            document.getElementById('weekly-distance').textContent = app.user.weeklyDistance.toFixed(1);
+            document.getElementById('calories-burned').textContent = app.user.weeklyCalories;
+            document.getElementById('token-balance').textContent = app.user.tokenBalance.toFixed(2);
+            document.getElementById('mobile-token-balance').textContent = app.user.tokenBalance.toFixed(2);
+        }
+        
+        function updateActivityHistory() {
+            const historyContainer = document.getElementById('activity-history');
+            if (!historyContainer) return;
+            
+            historyContainer.innerHTML = '';
+            
+            app.user.activities.slice(0, 3).forEach(activity => {
+                const activityEl = document.createElement('div');
+                activityEl.className = 'flex items-center p-3 rounded-lg mb-2 stat-card';
+                activityEl.innerHTML = `
+                    <div class="flex-shrink-0 h-12 w-12 rounded-full bg-primary bg-opacity-20 flex items-center justify-center mr-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between">
+                            <h4 class="text-sm font-semibold">${activity.type}</h4>
+                            <span class="text-xs opacity-70">${activity.date}</span>
+                        </div>
+                        <div class="flex text-xs mt-1 space-x-3">
+                            <span>${activity.distance} km</span>
+                            <span>${activity.duration}</span>
+                            <span>${activity.calories} cal</span>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 ml-2 flex items-center">
+                        <span class="text-neon-cyan font-semibold">+${activity.tokens}</span>
+                        <svg class="h-4 w-4 text-neon-cyan ml-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                `;
+                historyContainer.appendChild(activityEl);
+            });
+        }
+
+        function updateProfileStats() {
+            if (!document.getElementById('profile-level')) return;
+            
+            document.getElementById('profile-level').textContent = app.user.level;
+            document.getElementById('profile-name').textContent = app.user.name;
+            
+            const xpPercent = Math.round((app.user.experience / app.user.experienceToNextLevel) * 100);
+            document.getElementById('profile-xp-bar').style.width = `${xpPercent}%`;
+            document.getElementById('profile-xp-text').textContent = `${app.user.experience}/${app.user.experienceToNextLevel} XP`;
+            
+            document.getElementById('profile-weekly-distance').textContent = app.user.weeklyDistance.toFixed(1);
+            document.getElementById('profile-total-activities').textContent = app.user.activities.length;
+            document.getElementById('profile-streak').textContent = app.user.streakDays;
+        }
+        
+        function renderNFTs() {
+            const nftsContainer = document.getElementById('nfts-container');
+            if (!nftsContainer) return;
+            
+            nftsContainer.innerHTML = '';
+            
+            app.user.nfts.forEach((nft, index) => {
+                const nftEl = document.createElement('div');
+                nftEl.className = 'stat-card p-3 rounded-lg mb-4';
+                nftEl.innerHTML = `
+                    <div class="w-full h-32 bg-gradient-to-br from-${nft.rarity === 'Epic' ? 'purple' : 'blue'}-600 to-${nft.rarity === 'Epic' ? 'pink' : 'cyan'}-500 rounded-md mb-2 flex items-center justify-center">
+                        <span class="text-4xl">🚴‍♂️</span>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-base">${nft.name}</h3>
+                                <div class="flex items-center mt-1">
+                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background-color: ${
+                                        nft.rarity === 'Epic' ? 'rgba(157, 0, 255, 0.2)' : 'rgba(93, 92, 222, 0.2)'
+                                    }; color: ${
+                                        nft.rarity === 'Epic' ? '#9d00ff' : '#5D5CDE'
+                                    };">${nft.rarity}</span>
+                                </div>
+                            </div>
+                            <div class="flex">
+                                ${Array(nft.level).fill().map(() => 
+                                    `<svg class="h-4 w-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        <div class="mt-3 p-2 bg-gray-100 dark:bg-dark-surface rounded-md">
+                            <p class="text-xs text-center font-medium">Boost: ${nft.boost}</p>
+                        </div>
+                    </div>
+                `;
+                
+                nftsContainer.appendChild(nftEl);
+            });
+        }
+
+        // Initialize Charts
+        function initializeAnalyticsCharts() {
+            const ctx1 = document.getElementById('distanceChart');
+            const ctx2 = document.getElementById('speedChart');
+            
+            if (!ctx1 || !ctx2) return;
+
+            const distanceData = {
+                labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+                datasets: [{
+                    label: 'Distance (km)',
+                    data: [3.2, 5.1, 2.8, 6.3, 4.7, 8.1, 5.5],
+                    borderColor: '#00ffff',
+                    backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            };
+
+            const speedData = {
+                labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+                datasets: [{
+                    label: 'Vitesse (km/h)',
+                    data: [18.5, 19.2, 17.8, 20.1, 18.9, 21.3, 19.7],
+                    borderColor: '#9d00ff',
+                    backgroundColor: 'rgba(157, 0, 255, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            };
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#ffffff' }
+                    },
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: '#ffffff' }
+                    }
+                }
+            };
+
+            distanceChart = new Chart(ctx1.getContext('2d'), {
+                type: 'line',
+                data: distanceData,
+                options: chartOptions
+            });
+
+            speedChart = new Chart(ctx2.getContext('2d'), {
+                type: 'line',
+                data: speedData,
+                options: chartOptions
+            });
+        }
+
+        function initializeGasChart() {
+            const ctx = document.getElementById('gasChart');
+            if (!ctx) return;
+            
+            const hours = [];
+            const gasData = [];
+            
+            for (let i = 23; i >= 0; i--) {
+                const hour = new Date();
+                hour.setHours(hour.getHours() - i);
+                hours.push(hour.getHours() + ':00');
+                
+                const basePrice = 25;
+                const volatility = Math.sin(i * 0.5) * 10 + Math.random() * 15;
+                gasData.push(Math.max(10, basePrice + volatility));
+            }
+            
+            gasChart = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Prix Gas (gwei)',
+                        data: gasData,
+                        borderColor: '#00ff9d',
+                        backgroundColor: 'rgba(0, 255, 157, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ffffff' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Event listeners
+        function setupEventListeners() {
+            // Period filter tabs
+            document.querySelectorAll('.period-filter').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.period-filter').forEach(t => {
+                        t.classList.remove('active', 'bg-primary', 'text-white');
+                        t.classList.add('bg-gray-200', 'dark:bg-dark-surface');
+                    });
+                    tab.classList.add('active', 'bg-primary', 'text-white');
+                    tab.classList.remove('bg-gray-200', 'dark:bg-dark-surface');
+                });
+            });
+
+            // Analytics period filter tabs
+            document.querySelectorAll('.analytics-period').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.analytics-period').forEach(t => {
+                        t.classList.remove('active', 'bg-primary', 'text-white');
+                    });
+                    tab.classList.add('active', 'bg-primary', 'text-white');
+                });
+            });
+        }
+
+        // Initialize blockchain data updates
+        function startBlockchainUpdates() {
+            fetchGasPrices();
+            fetchTokenPrices();
+            
+            setInterval(fetchGasPrices, 30000);
+            setInterval(fetchTokenPrices, 60000);
+        }
+
+        // Google Authentication Configuration
+        const GOOGLE_CONFIG = {
+            CLIENT_ID: '1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com', // Demo client ID
+            SCOPES: 'profile email https://www.googleapis.com/auth/drive.file'
+        };
+        
+        let googleAuth = null;
+        let isGoogleSignedIn = false;
+        
+        // Google Sign-In Functions
+        function initializeGoogleAuth() {
+            if (typeof gapi !== 'undefined') {
+                gapi.load('auth2', () => {
+                    gapi.auth2.init({
+                        client_id: GOOGLE_CONFIG.CLIENT_ID
+                    }).then(() => {
+                        googleAuth = gapi.auth2.getAuthInstance();
+                        
+                        // Check if user is already signed in
+                        if (googleAuth.isSignedIn.get()) {
+                            const user = googleAuth.currentUser.get();
+                            handleSignInSuccess(user);
+                        }
+                        
+                        console.log('✅ Google Auth initialized');
+                    }).catch(error => {
+                        console.warn('Google Auth initialization failed:', error);
+                    });
+                });
+            } else {
+                console.warn('Google API not loaded - using simulation mode');
+            }
+        }
+        
+        function handleGoogleSignIn() {
+            if (!googleAuth) {
+                // Fallback to simulation mode
+                simulateGoogleSignIn();
+                return;
+            }
+            
+            if (isGoogleSignedIn) {
+                // Sign out
+                googleAuth.signOut().then(() => {
+                    handleSignOut();
+                });
+            } else {
+                // Sign in
+                googleAuth.signIn({
+                    scope: GOOGLE_CONFIG.SCOPES
+                }).then(user => {
+                    handleSignInSuccess(user);
+                }).catch(error => {
+                    console.error('Google Sign-In failed:', error);
+                    showGoogleSignInError();
+                });
+            }
+        }
+        
+        function simulateGoogleSignIn() {
+            // Simulate successful Google sign-in for demo
+            const mockUser = {
+                getBasicProfile: () => ({
+                    getName: () => 'Alex Rider',
+                    getEmail: () => 'alex@fixierun.com',
+                    getImageUrl: () => 'https://via.placeholder.com/40x40/5D5CDE/ffffff?text=AR'
+                }),
+                getAuthResponse: () => ({
+                    access_token: 'demo_token_' + Date.now()
+                })
+            };
+            
+            handleSignInSuccess(mockUser);
+        }
+        
+        function handleSignInSuccess(user) {
+            const profile = user.getBasicProfile();
+            const name = profile.getName();
+            const email = profile.getEmail();
+            const imageUrl = profile.getImageUrl();
+            
+            // Update app state
+            app.user.name = name.split(' ')[0]; // First name only
+            app.user.email = email;
+            app.user.profileImage = imageUrl;
+            app.user.googleAccessToken = user.getAuthResponse().access_token;
+            
+            isGoogleSignedIn = true;
+            
+            // Update UI
+            updateGoogleSignInButton(true, name, imageUrl);
+            updateProfileWithGoogleData(name, email, imageUrl);
+            
+            // Sync data to Google Drive
+            syncToGoogleDrive();
+            
+            // Show success notification
+            showNotification('✅ Connecté avec Google', `Bienvenue ${name}!`, 'success');
+            
+            console.log('✅ Google Sign-In successful:', name);
+        }
+        
+        function handleSignOut() {
+            isGoogleSignedIn = false;
+            
+            // Reset user data
+            app.user.email = null;
+            app.user.profileImage = null;
+            app.user.googleAccessToken = null;
+            
+            // Update UI
+            updateGoogleSignInButton(false);
+            updateProfileWithGoogleData('Alex', null, null);
+            
+            showNotification('👋 Déconnecté', 'À bientôt!', 'info');
+            
+            console.log('👋 Google Sign-Out successful');
+        }
+        
+        function updateGoogleSignInButton(signedIn, name = null, imageUrl = null) {
+            const button = document.getElementById('google-signin-btn');
+            
+            if (signedIn && imageUrl) {
+                button.innerHTML = `
+                    <img src="${imageUrl}" alt="${name}" class="h-6 w-6 rounded-full object-cover">
+                `;
+                button.title = `Connecté en tant que ${name} - Cliquer pour se déconnecter`;
+                button.classList.add('bg-green-500');
+                button.classList.remove('bg-gray-200', 'dark:bg-dark-card');
+            } else {
+                button.innerHTML = `
+                    <svg class="h-4 w-4" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                `;
+                button.title = 'Se connecter avec Google';
+                button.classList.remove('bg-green-500');
+                button.classList.add('bg-gray-200', 'dark:bg-dark-card');
+            }
+        }
+        
+        function updateProfileWithGoogleData(name, email, imageUrl) {
+            // Update welcome banner
+            const welcomeBanner = document.querySelector('h2');
+            if (welcomeBanner && welcomeBanner.textContent.includes('Salut,')) {
+                welcomeBanner.textContent = `Salut, ${name}! 👋`;
+            }
+            
+            // Update profile page
+            const profileName = document.getElementById('profile-name');
+            if (profileName) {
+                profileName.textContent = name;
+            }
+            
+            const profileAvatar = document.querySelector('.h-16.w-16.rounded-full');
+            if (profileAvatar && imageUrl) {
+                profileAvatar.innerHTML = `<img src="${imageUrl}" alt="${name}" class="h-16 w-16 rounded-full object-cover">`;
+            } else if (profileAvatar) {
+                profileAvatar.innerHTML = `<span class="text-2xl font-bold">${name.charAt(0)}</span>`;
+            }
+        }
+        
+        // Google Drive Sync Functions
+        async function syncToGoogleDrive() {
+            if (!app.user.googleAccessToken) {
+                console.warn('No Google access token - skipping sync');
+                return;
+            }
+            
+            try {
+                const userData = {
+                    user: {
+                        name: app.user.name,
+                        level: app.user.level,
+                        experience: app.user.experience,
+                        tokenBalance: app.user.tokenBalance,
+                        weeklyDistance: app.user.weeklyDistance,
+                        weeklyCalories: app.user.weeklyCalories,
+                        streakDays: app.user.streakDays
+                    },
+                    activities: app.user.activities,
+                    nfts: app.user.nfts,
+                    lastSync: new Date().toISOString()
+                };
+                
+                // Simulate saving to Google Drive
+                console.log('💾 Syncing data to Google Drive...', userData);
+                
+                // In a real implementation, you would use the Google Drive API:
+                // await saveToDrive(userData, app.user.googleAccessToken);
+                
+                showNotification('☁️ Données synchronisées', 'Sauvegarde réussie sur Google Drive', 'success');
+                
+            } catch (error) {
+                console.error('Sync to Google Drive failed:', error);
+                showNotification('❌ Erreur de sync', 'Impossible de sauvegarder sur Google Drive', 'error');
+            }
+        }
+        
+        async function loadFromGoogleDrive() {
+            if (!app.user.googleAccessToken) {
+                console.warn('No Google access token - skipping load');
+                return;
+            }
+            
+            try {
+                console.log('📥 Loading data from Google Drive...');
+                
+                // In a real implementation, you would load from Google Drive:
+                // const userData = await loadFromDrive(app.user.googleAccessToken);
+                
+                // Simulate loaded data
+                const userData = {
+                    user: {
+                        level: 15,
+                        experience: 3200,
+                        tokenBalance: 150.25,
+                        weeklyDistance: 45.2,
+                        weeklyCalories: 1800,
+                        streakDays: 12
+                    },
+                    activities: [
+                        { date: "Synchronisé", type: "Données Google", distance: 0, duration: "0 min", calories: 0, tokens: 0 }
+                    ]
+                };
+                
+                // Update app state with loaded data
+                Object.assign(app.user, userData.user);
+                
+                // Update UI
+                updateHomeStats();
+                updateProfileStats();
+                
+                showNotification('📥 Données restaurées', 'Progression synchronisée depuis Google Drive', 'success');
+                
+            } catch (error) {
+                console.error('Load from Google Drive failed:', error);
+                showNotification('❌ Erreur de chargement', 'Impossible de charger depuis Google Drive', 'error');
+            }
+        }
+        
+        function showGoogleSignInError() {
+            showNotification('❌ Erreur de connexion', 'Impossible de se connecter à Google. Réessayez plus tard.', 'error');
+        }
+        
+        // Enhanced notification system
+        function showNotification(title, message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-20 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 translate-x-full`;
+            
+            const bgColor = {
+                'success': 'bg-green-500',
+                'error': 'bg-red-500',
+                'info': 'bg-blue-500',
+                'warning': 'bg-yellow-500'
+            }[type] || 'bg-blue-500';
+            
+            notification.classList.add(bgColor);
+            
+            notification.innerHTML = `
+                <div class="text-white">
+                    <h4 class="font-bold text-sm">${title}</h4>
+                    <p class="text-xs mt-1">${message}</p>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 4000);
+        }
+        
+        // Auto-sync functions
+        function enableAutoSync() {
+            if (!isGoogleSignedIn) return;
+            
+            // Sync data every 5 minutes
+            setInterval(() => {
+                if (isGoogleSignedIn) {
+                    syncToGoogleDrive();
+                }
+            }, 5 * 60 * 1000);
+            
+            // Sync on activity completion
+            const originalStopActivity = stopActivity;
+            stopActivity = function() {
+                originalStopActivity.call(this);
+                if (isGoogleSignedIn) {
+                    setTimeout(() => syncToGoogleDrive(), 2000);
+                }
+            };
+        }
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Initializing FixieRun Dashboard...');
+            
+            // Set dark mode
+            document.documentElement.classList.add('dark');
+            
+            // Switch to home screen
+            switchScreen('home');
+            
+            // Initialize UI components
+            updateHomeStats();
+            updateActivityHistory();
+            renderNFTs();
+            updateProfileStats();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Start blockchain data updates
+            startBlockchainUpdates();
+            
+            // Initialize Google Authentication
+            setTimeout(() => {
+                initializeGoogleAuth();
+                enableAutoSync();
+            }, 1000);
+            
+            // Check for MetaMask
+            if (window.ethereum) {
+                console.log('🦊 MetaMask detected - ready for wallet connection');
+            } else {
+                console.log('⚠️ MetaMask not detected');
+            }
+            
+            console.log('✅ FixieRun Dashboard initialized successfully');
+        });
+    </script>
+
+
+</body></html>
